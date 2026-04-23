@@ -4,22 +4,31 @@
 // (LAUDO, EXTRATO, TERMO DE CESTA, LIGAÇÃO - FONE FÁCIL, LOG, TELA TRAG)
 
 import { useState, useCallback } from 'react'
-import { DocumentoBanco, DocumentoStatus, DOCUMENTOS_CESTAS } from '@/lib/mock-data'
+import Link from 'next/link'
+import { DocumentoBanco, DocumentoStatus, DOCUMENTOS_CESTAS, DOCUMENTO_AREA } from '@/lib/mock-data'
+import { useChamados } from '@/context/ChamadosContext'
 import Modal from '@/components/ui/Modal'
 
 interface Section3Props {
   onComplete: () => void
   isComplete: boolean
+  processoId: string
 }
 
 type DocState = DocumentoBanco & { status: DocumentoStatus }
 
-export default function Section3Documentos({ onComplete, isComplete }: Section3Props) {
+export default function Section3Documentos({ onComplete, isComplete, processoId }: Section3Props) {
   const [docs, setDocs] = useState<DocState[]>(DOCUMENTOS_CESTAS.map((d) => ({ ...d })))
   const [previewDoc, setPreviewDoc] = useState<string | null>(null)
   const [dispatched, setDispatched] = useState(false)
+  const { dispatch: chamadosDispatch, chamados } = useChamados()
 
   const allResolved = docs.every((d) => d.status === 'found' || d.status === 'unavailable')
+
+  const getChamadoParaDoc = (nomeDoc: string) =>
+    chamados.find(
+      (c) => c.processoId === processoId && c.documentoSolicitado === nomeDoc && c.status === 'aberto',
+    )
 
   const disparar = useCallback(() => {
     if (dispatched) return
@@ -30,14 +39,22 @@ export default function Section3Documentos({ onComplete, isComplete }: Section3P
     DOCUMENTOS_CESTAS.forEach((doc, i) => {
       setTimeout(() => {
         setDocs((prev) =>
-          prev.map((d) => (d.nome === doc.nome ? { ...d, status: doc.resultado } : d))
+          prev.map((d) => (d.nome === doc.nome ? { ...d, status: doc.resultado } : d)),
         )
+
+        if (doc.resultado === 'unavailable') {
+          const area = DOCUMENTO_AREA[doc.nome]
+          if (area) {
+            chamadosDispatch({ type: 'ABRIR_CHAMADO', processoId, documento: doc.nome, area })
+          }
+        }
+
         if (i === DOCUMENTOS_CESTAS.length - 1) {
           onComplete()
         }
       }, doc.resolveMs)
     })
-  }, [dispatched, onComplete])
+  }, [dispatched, onComplete, processoId, chamadosDispatch])
 
   return (
     <div className="bg-white rounded-xl border border-gray-100 p-6 mb-4">
@@ -70,7 +87,11 @@ export default function Section3Documentos({ onComplete, isComplete }: Section3P
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
             d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20A10 10 0 0012 2z" />
         </svg>
-        <span className="italic">Documentos obtidos automaticamente dos sistemas internos do Bradesco. Cada documento dispara uma automação independente.</span>
+        <span className="italic">
+          Documentos não encontrados geram chamados automáticos para as áreas responsáveis.
+          O caso será enviado ao ServiceNow automaticamente quando todos os documentos forem
+          reunidos ou quando todos os SLAs forem concluídos.
+        </span>
       </div>
 
       <div className="border border-gray-100 rounded-lg overflow-hidden mb-5">
@@ -84,54 +105,72 @@ export default function Section3Documentos({ onComplete, isComplete }: Section3P
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
-            {docs.map((doc) => (
-              <tr key={doc.nome} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 font-semibold text-brand-dark">{doc.nome}</td>
-                <td className="px-4 py-3 text-brand-slate font-light">{doc.tipo}</td>
-                <td className="px-4 py-3">
-                  {doc.status === 'idle' && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
-                      Aguardando
-                    </span>
-                  )}
-                  {doc.status === 'loading' && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-600">
-                      <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                      </svg>
-                      Buscando...
-                    </span>
-                  )}
-                  {doc.status === 'found' && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Encontrado
-                    </span>
-                  )}
-                  {doc.status === 'unavailable' && (
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
-                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      Indisponível
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {doc.status === 'found' && (
-                    <button
-                      onClick={() => setPreviewDoc(doc.nome)}
-                      className="text-xs font-semibold text-brand-mid hover:text-brand-dark transition-colors underline underline-offset-2"
-                    >
-                      Visualizar
-                    </button>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {docs.map((doc) => {
+              const chamado = getChamadoParaDoc(doc.nome)
+              return (
+                <tr key={doc.nome} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3 font-semibold text-brand-dark">{doc.nome}</td>
+                  <td className="px-4 py-3 text-brand-slate font-light">{doc.tipo}</td>
+                  <td className="px-4 py-3">
+                    {doc.status === 'idle' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-500">
+                        Aguardando
+                      </span>
+                    )}
+                    {doc.status === 'loading' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-50 text-yellow-600">
+                        <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                        Buscando...
+                      </span>
+                    )}
+                    {doc.status === 'found' && (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        Encontrado
+                      </span>
+                    )}
+                    {doc.status === 'unavailable' && (
+                      <div className="flex flex-col gap-1">
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700 w-fit">
+                          <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                          </svg>
+                          Chamado em andamento
+                        </span>
+                        {chamado && (
+                          <span className="text-xs text-brand-slate font-light">
+                            {chamado.numero} · Resposta em até {chamado.slaHoras}h
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    {doc.status === 'found' && (
+                      <button
+                        onClick={() => setPreviewDoc(doc.nome)}
+                        className="text-xs font-semibold text-brand-mid hover:text-brand-dark transition-colors underline underline-offset-2"
+                      >
+                        Visualizar
+                      </button>
+                    )}
+                    {doc.status === 'unavailable' && chamado && (
+                      <Link
+                        href={`/chamados/${chamado.id}`}
+                        className="text-xs font-semibold text-brand-mid hover:text-brand-dark transition-colors underline underline-offset-2"
+                      >
+                        Ver chamado
+                      </Link>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>

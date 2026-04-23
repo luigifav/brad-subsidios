@@ -10,6 +10,8 @@ type Action =
   | { type: 'INICIAR_TRATATIVA'; id: string }
   | { type: 'ATUALIZAR_ANALISE'; id: string; analise: Analise }
   | { type: 'ENVIAR_SERVICENOW'; id: string; protocolo: string }
+  | { type: 'ENVIAR_SERVICENOW_AUTOMATICO'; id: string; protocolo: string }
+  | { type: 'MARCAR_PENDENTE_GESTOR'; id: string; motivo: string }
 
 interface CasesContextType {
   cases: Processo[]
@@ -45,6 +47,25 @@ function reducer(state: Processo[], action: Action): Processo[] {
               statusServiceNow: 'em_geracao' as StatusServiceNow,
               timestampEnvio: new Date().toISOString(),
             }
+          : p
+      )
+    case 'ENVIAR_SERVICENOW_AUTOMATICO':
+      return state.map((p) =>
+        p.id === action.id && p.status !== 'Enviado ao ServiceNow'
+          ? {
+              ...p,
+              status: 'Enviado ao ServiceNow' as ProcessoStatus,
+              protocoloServiceNow: action.protocolo,
+              statusServiceNow: 'em_geracao' as StatusServiceNow,
+              timestampEnvio: new Date().toISOString(),
+              pendenteGestor: false,
+            }
+          : p
+      )
+    case 'MARCAR_PENDENTE_GESTOR':
+      return state.map((p) =>
+        p.id === action.id
+          ? { ...p, pendenteGestor: true, pendenciaDescricao: action.motivo }
           : p
       )
     default:

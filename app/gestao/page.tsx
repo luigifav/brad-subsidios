@@ -1,7 +1,14 @@
-import { Fragment } from 'react'
+'use client'
+
+import { Fragment, useState } from 'react'
 import Link from 'next/link'
 import MetricCard from '@/components/MetricCard'
 import { formatCurrency } from '@/lib/mock-data'
+import { useCases } from '@/context/CasesContext'
+import { useChamados } from '@/context/ChamadosContext'
+import { Chamado } from '@/lib/mock-data'
+import StatusChamadoBadge from '@/components/chamados/StatusChamadoBadge'
+import Modal from '@/components/ui/Modal'
 import {
   ANALISTAS_PRODUTIVIDADE,
   ETAPAS_SLA,
@@ -49,17 +56,137 @@ function buildSlices() {
   })
 }
 
+function formatTempoDesdeEstouro(dataAbertura: string, slaHoras: number): string {
+  const deadline = new Date(dataAbertura).getTime() + slaHoras * 3600000
+  const ms = Date.now() - deadline
+  if (ms <= 0) return 'Não estourado'
+  const h = Math.floor(ms / 3600000)
+  const min = Math.floor((ms % 3600000) / 60000)
+  if (h === 0) return `há ${min}min`
+  return `há ${h}h ${min}min`
+}
+
+function gerarEmailEscalacao(chamado: Chamado, numeroProcesso: string): string {
+  const dataFormatada = new Date(chamado.dataAbertura).toLocaleString('pt-BR', {
+    day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit',
+  })
+  const area = chamado.area.toLowerCase().replace('.', '').replace(' ', '')
+  return `Para: ${area}@bradesco.com.br
+Assunto: Escalação - Chamado ${chamado.numero} - SLA estourado
+
+Prezados,
+
+Registramos que o chamado ${chamado.numero}, aberto em ${dataFormatada} para solicitação do documento ${chamado.documentoSolicitado} referente ao processo ${numeroProcesso}, ultrapassou o SLA estabelecido de ${chamado.slaHoras}h.
+
+O caso encontra-se pendente na esteira de subsídios aguardando este documento para finalização do laudo técnico.
+
+Solicitamos priorização no atendimento.
+
+Atenciosamente,
+Equipe SBK Legal Ops`
+}
+
 export default function GestaoPage() {
   const slices = buildSlices()
+  const { cases } = useCases()
+  const { chamados, getChamadosDoCaso } = useChamados()
+  const [toastMsg, setToastMsg] = useState<string | null>(null)
+  const [analiticoProcessoId, setAnaliticoProcessoId] = useState<string | null>(null)
+  const [emailChamado, setEmailChamado] = useState<Chamado | null>(null)
+
+  const casosPendentes = cases.filter((p) => p.pendenteGestor)
+  const slaEstourados = chamados.filter((c) => c.status === 'sla_estourado').length
+
+  function showToast(msg: string) {
+    setToastMsg(msg)
+    setTimeout(() => setToastMsg(null), 3000)
+  }
+
+  function handleAcionarBanco(processoId: string) {
+    showToast('Acionamento registrado. A área foi notificada.')
+  }
+
+  function handleCopiarEmail(texto: string) {
+    navigator.clipboard.writeText(texto).then(() => {
+      showToast('Texto copiado para a área de transferência.')
+    })
+  }
+
+  const processoAnalitico = analiticoProcessoId ? cases.find((p) => p.id === analiticoProcessoId) : null
+  const chamadosAnalitico = analiticoProcessoId ? getChamadosDoCaso(analiticoProcessoId) : []
+  const chamadosProblematicosDoCaso = chamadosAnalitico.filter(
+    (c) => c.status === 'sla_estourado' || c.status === 'respondido_sem_doc',
+  )
 
   return (
     <div className="max-w-screen-xl mx-auto px-6 py-8">
+      {/* Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 z-50 px-5 py-3 bg-brand-dark text-white text-sm font-semibold rounded-xl shadow-lg">
+          {toastMsg}
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-brand-dark">Gestão da Esteira</h1>
         <p className="text-sm text-brand-slate font-light mt-1">
           Visão consolidada de produtividade e SLA
         </p>
       </div>
+
+      {/* Bloco de alerta: casos com SLA estourado pendentes do gestor */}
+      {casosPendentes.length > 0 && (
+        <div
+          className="rounded-xl border p-6 mb-8"
+          style={{ backgroundColor: slaEstourados > 2 ? '#FEE2E2' : '#FEF3E2', borderColor: slaEstourados > 2 ? '#FECACA' : '#FDE68A' }}
+        >
+          <div className="flex items-center gap-2 mb-4">
+            <svg className="w-5 h-5 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h2 className="text-base font-semibold text-orange-900">
+              {casosPendentes.length} {casosPendentes.length === 1 ? 'caso com SLA estourado aguardando sua ação' : 'casos com SLA estourado aguardando sua ação'}
+            </h2>
+          </div>
+          <div className="flex flex-col gap-3">
+            {casosPendentes.map((processo) => {
+              const chamadosDoCaso = getChamadosDoCaso(processo.id)
+              const estourados = chamadosDoCaso.filter((c) => c.status === 'sla_estourado').length
+              const semDoc = chamadosDoCaso.filter((c) => c.status === 'respondido_sem_doc').length
+              const piorEstouro = chamadosDoCaso
+                .filter((c) => c.status === 'sla_estourado')
+                .sort((a, b) => new Date(a.dataAbertura).getTime() - new Date(b.dataAbertura).getTime())[0]
+              return (
+                <div key={processo.id} className="bg-white rounded-lg p-4 flex items-center justify-between gap-4 flex-wrap">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-mono text-xs font-semibold text-brand-dark truncate">{processo.numero}</p>
+                    <p className="text-xs text-brand-slate font-light mt-0.5">
+                      {estourados > 0 && `${estourados} chamado(s) estourado(s)`}
+                      {estourados > 0 && semDoc > 0 && ', '}
+                      {semDoc > 0 && `${semDoc} respondido(s) sem documento`}
+                      {piorEstouro && ` · ${formatTempoDesdeEstouro(piorEstouro.dataAbertura, piorEstouro.slaHoras)}`}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      onClick={() => setAnaliticoProcessoId(processo.id)}
+                      className="px-3 py-1.5 text-xs font-semibold border border-gray-300 rounded-lg text-brand-dark hover:bg-gray-50 transition-colors"
+                    >
+                      Analítico
+                    </button>
+                    <button
+                      onClick={() => handleAcionarBanco(processo.id)}
+                      className="px-3 py-1.5 text-xs font-semibold text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors"
+                    >
+                      Acionar banco
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Bloco 1: Métricas consolidadas */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
@@ -296,6 +423,99 @@ export default function GestaoPage() {
           </table>
         </div>
       </div>
+
+      {/* Modal analítico */}
+      <Modal
+        isOpen={analiticoProcessoId !== null}
+        onClose={() => setAnaliticoProcessoId(null)}
+        title={`Analítico do caso ${processoAnalitico?.numero?.split('-')[0] ?? ''}...`}
+      >
+        {processoAnalitico && (
+          <div className="flex flex-col gap-4">
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-slate mb-0.5">Processo</p>
+                <p className="font-mono text-xs text-brand-dark">{processoAnalitico.numero}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-slate mb-0.5">Analista</p>
+                <p className="text-brand-dark">{processoAnalitico.analistaResponsavel ?? '—'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-slate mb-0.5">Tipo de subsídio</p>
+                <p className="text-brand-dark">{processoAnalitico.tipoSubsidio}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-brand-slate mb-0.5">Pendência</p>
+                <p className="text-brand-dark text-xs font-light">{processoAnalitico.pendenciaDescricao}</p>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-brand-slate mb-2">Chamados vinculados</p>
+              <div className="flex flex-col gap-2">
+                {chamadosAnalitico.map((c) => (
+                  <div key={c.id} className="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg bg-brand-offwhite">
+                    <div className="min-w-0">
+                      <p className="font-mono text-xs font-semibold text-brand-dark">{c.numero}</p>
+                      <p className="text-xs text-brand-slate font-light">{c.documentoSolicitado} · {c.area}</p>
+                      {c.motivoAusencia && (
+                        <p className="text-xs text-orange-700 font-light mt-0.5 italic">{c.motivoAusencia}</p>
+                      )}
+                    </div>
+                    <div className="shrink-0">
+                      <StatusChamadoBadge status={c.status} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {chamadosProblematicosDoCaso.length > 0 && (
+              <div className="px-3 py-2.5 rounded-lg bg-orange-50 border border-orange-100">
+                <p className="text-xs font-semibold text-orange-800 mb-1">Sugestão de ação</p>
+                <p className="text-xs text-orange-700 font-light">
+                  Contatar {chamadosProblematicosDoCaso[0].area} para escalar o chamado {chamadosProblematicosDoCaso[0].numero}.
+                </p>
+              </div>
+            )}
+
+            {chamadosProblematicosDoCaso.length > 0 && (
+              <button
+                onClick={() => {
+                  setEmailChamado(chamadosProblematicosDoCaso[0])
+                }}
+                className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-mid rounded-lg hover:bg-brand-dark transition-colors"
+              >
+                Gerar e-mail de escalação
+              </button>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Modal e-mail de escalação */}
+      <Modal
+        isOpen={emailChamado !== null}
+        onClose={() => setEmailChamado(null)}
+        title="E-mail de escalação"
+      >
+        {emailChamado && processoAnalitico && (
+          <div className="flex flex-col gap-4">
+            <pre className="whitespace-pre-wrap text-xs text-brand-dark bg-brand-offwhite rounded-lg p-4 font-mono leading-relaxed">
+              {gerarEmailEscalacao(emailChamado, processoAnalitico.numero)}
+            </pre>
+            <button
+              onClick={() =>
+                handleCopiarEmail(gerarEmailEscalacao(emailChamado, processoAnalitico.numero))
+              }
+              className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-brand-mid rounded-lg hover:bg-brand-dark transition-colors"
+            >
+              Copiar texto
+            </button>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

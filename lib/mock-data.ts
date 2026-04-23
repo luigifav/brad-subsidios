@@ -1,5 +1,60 @@
 // TODO: substituir mock por dados reais de APIs dos sistemas do banco e tribunal
 
+export type ChamadoStatus =
+  | 'aberto'
+  | 'respondido_com_doc'
+  | 'respondido_sem_doc'
+  | 'sla_estourado'
+  | 'cancelado'
+
+export type AreaBanco =
+  | 'Ouvidoria'
+  | 'Compliance'
+  | 'T.I.'
+  | 'Operações'
+  | 'Jurídico Interno'
+  | 'Prevenção a Fraudes'
+
+export interface Chamado {
+  id: string
+  numero: string
+  processoId: string
+  documentoSolicitado: string
+  area: AreaBanco
+  slaHoras: number
+  dataAbertura: string
+  dataResposta?: string
+  status: ChamadoStatus
+  motivoAusencia?: string
+  abertoPor: 'automacao' | 'manual'
+}
+
+export const SLA_MATRIZ: Record<string, Record<string, number>> = {
+  'T.I.': { 'LOG': 24, 'TELA TRAG': 48, 'default': 48 },
+  'Operações': { 'EXTRATO': 12, 'TERMO DE CESTA': 24, 'LIGAÇÃO - FONE FÁCIL': 72, 'default': 48 },
+  'Compliance': { 'LAUDO': 48, 'default': 72 },
+  'Ouvidoria': { 'default': 96 },
+  'Prevenção a Fraudes': { 'default': 48 },
+  'Jurídico Interno': { 'Procuração': 48, 'default': 72 },
+}
+
+export const DOCUMENTO_AREA: Record<string, AreaBanco> = {
+  'LAUDO': 'Compliance',
+  'EXTRATO': 'Operações',
+  'TERMO DE CESTA': 'Operações',
+  'LIGAÇÃO - FONE FÁCIL': 'Operações',
+  'LOG': 'T.I.',
+  'TELA TRAG': 'T.I.',
+  'Procuração do autor': 'Jurídico Interno',
+  'Laudo pericial': 'Compliance',
+}
+
+export function getSLA(area: AreaBanco, documento: string): number {
+  const matrizArea = SLA_MATRIZ[area]
+  if (!matrizArea) return 48
+  return matrizArea[documento] ?? matrizArea['default'] ?? 48
+}
+
 export type ProcessoStatus =
   | 'Na fila'
   | 'Distribuído'
@@ -67,6 +122,7 @@ export interface Processo {
   tempoDesdeEnvio?: string
   timestampEnvio?: string
   pendenciaDescricao?: string
+  pendenteGestor?: boolean
 }
 
 export interface DocumentoBanco {
@@ -291,6 +347,8 @@ export const MOCK_PROCESSOS: Processo[] = [
     dataDistribuicao: '2023-08-17',
     status: 'Distribuído',
     analistaResponsavel: 'Ana Costa',
+    pendenteGestor: true,
+    pendenciaDescricao: 'Documentos insuficientes após encerramento dos chamados. Caso requer ação do gestor.',
     nomeAutor: 'Diego Augusto Pereira',
     cpfAutor: '234.567.890-12',
     advogadoAutor: 'Dra. Roberta Carvalho',
@@ -312,6 +370,8 @@ export const MOCK_PROCESSOS: Processo[] = [
     dataDistribuicao: '2024-01-19',
     status: 'Distribuído',
     analistaResponsavel: 'Ana Costa',
+    pendenteGestor: true,
+    pendenciaDescricao: 'Documentos insuficientes após encerramento dos chamados. Caso requer ação do gestor.',
     nomeAutor: 'Tatiana Moreira Silva',
     cpfAutor: '345.678.901-23',
     advogadoAutor: 'Dr. Leonardo Azevedo',
