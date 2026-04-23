@@ -398,6 +398,8 @@ export const MOCK_PROCESSOS: Processo[] = [
     advogadoAutor: 'Dra. Viviane Esteves',
     oabAdvogadoAutor: 'OAB/SP 165.890',
     advogadoReu: 'Dr. Caio Braga',
+    statusServiceNow: 'pendencia' as const,
+    pendenciaDescricao: 'Campo obrigatório faltando no formulário',
   },
   {
     id: 'proc-013',
