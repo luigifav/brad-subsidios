@@ -4,6 +4,7 @@
 
 import Link from 'next/link'
 import { useCases } from '@/context/CasesContext'
+import { useAtivaPersona } from '@/context/PersonaContext'
 import { ACOMPANHAMENTO_MOCKS } from '@/lib/acompanhamento-mock'
 import MetricCard from '@/components/MetricCard'
 import { StatusServiceNow, formatCurrency } from '@/lib/mock-data'
@@ -18,11 +19,26 @@ const STATUS_LABELS: Record<StatusServiceNow, { label: string; color: string }> 
 
 export default function AcompanhamentoPage() {
   const { cases } = useCases()
+  const { persona, config } = useAtivaPersona()
 
-  const casosDoContexto = cases.filter((c) => c.status === 'Enviado ao ServiceNow')
-  const todos = [...casosDoContexto, ...ACOMPANHAMENTO_MOCKS].sort((a, b) =>
-    (b.timestampEnvio ?? '').localeCompare(a.timestampEnvio ?? '')
-  )
+  const isGestor = persona === 'gestor'
+
+  const subtitulo = isGestor
+    ? 'Casos enviados ao ServiceNow por toda a equipe'
+    : 'Seus casos enviados ao ServiceNow'
+
+  const casosDoContexto = cases.filter((c) => {
+    if (c.status !== 'Enviado ao ServiceNow') return false
+    if (!isGestor && c.analistaResponsavel !== config.nome) return false
+    return true
+  })
+
+  const todosBase = [...casosDoContexto, ...ACOMPANHAMENTO_MOCKS]
+  const todos = isGestor
+    ? todosBase.sort((a, b) => (b.timestampEnvio ?? '').localeCompare(a.timestampEnvio ?? ''))
+    : todosBase
+        .filter((c) => !c.analistaResponsavel || c.analistaResponsavel === config.nome)
+        .sort((a, b) => (b.timestampEnvio ?? '').localeCompare(a.timestampEnvio ?? ''))
 
   const emGeracao = todos.filter((c) => c.statusServiceNow === 'em_geracao').length
   const laudosProntos = todos.filter((c) => c.statusServiceNow === 'laudo_gerado').length
@@ -31,9 +47,7 @@ export default function AcompanhamentoPage() {
     <div className="max-w-7xl mx-auto px-6 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-brand-dark">Acompanhamento Pós-Envio</h1>
-        <p className="text-sm text-brand-slate font-light mt-1">
-          Casos enviados ao ServiceNow aguardando conclusão do laudo
-        </p>
+        <p className="text-sm text-brand-slate font-light mt-1">{subtitulo}</p>
       </div>
 
       <div className="grid grid-cols-3 gap-4 mb-8">

@@ -7,6 +7,7 @@ import { useCases } from '@/context/CasesContext'
 import { Chamado } from '@/lib/mock-data'
 import SLABadge from '@/components/chamados/SLABadge'
 import StatusChamadoBadge from '@/components/chamados/StatusChamadoBadge'
+import PersonaGuard from '@/components/PersonaGuard'
 
 type Filtro = 'todos' | 'abertos' | 'proximo' | 'estourados' | 'respondidos'
 
@@ -72,6 +73,7 @@ export default function ChamadosPage() {
   ]
 
   return (
+    <PersonaGuard permitidas={['gestor']}>
     <div className="max-w-screen-xl mx-auto px-6 py-8">
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-brand-dark">Chamados Internos</h1>
@@ -189,5 +191,6 @@ export default function ChamadosPage() {
         </div>
       </div>
     </div>
+    </PersonaGuard>
   )
 }

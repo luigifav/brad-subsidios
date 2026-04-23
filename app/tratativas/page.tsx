@@ -2,16 +2,19 @@
 
 import { useRouter } from 'next/navigation'
 import { useCases } from '@/context/CasesContext'
+import { useAtivaPersona } from '@/context/PersonaContext'
+import PersonaGuard from '@/components/PersonaGuard'
 import StatusBadge from '@/components/StatusBadge'
 import { formatCurrency } from '@/lib/mock-data'
 
-export default function TratativasPage() {
+function TratativasContent() {
   const { cases, dispatch } = useCases()
+  const { config } = useAtivaPersona()
   const router = useRouter()
 
   const meusCasos = cases.filter(
     (c) =>
-      c.analistaResponsavel === 'Ana Costa' &&
+      c.analistaResponsavel === config.nome &&
       (c.status === 'Distribuído' || c.status === 'Em tratativa')
   )
 
@@ -25,7 +28,7 @@ export default function TratativasPage() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold text-brand-dark">Minhas Tratativas</h1>
         <p className="text-sm text-brand-slate font-light mt-1">
-          Ana Costa — {meusCasos.length} {meusCasos.length === 1 ? 'caso' : 'casos'} em andamento
+          {config.nome} — {meusCasos.length} {meusCasos.length === 1 ? 'caso' : 'casos'} em andamento
         </p>
       </div>
 
@@ -73,5 +76,13 @@ export default function TratativasPage() {
         ))}
       </div>
     </div>
+  )
+}
+
+export default function TratativasPage() {
+  return (
+    <PersonaGuard permitidas={['operador']}>
+      <TratativasContent />
+    </PersonaGuard>
   )
 }

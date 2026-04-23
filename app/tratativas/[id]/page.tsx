@@ -12,6 +12,7 @@ import Section4Analise from '@/components/tratativa/Section4Analise'
 import Section5Resumo from '@/components/tratativa/Section5Resumo'
 import AcoesRapidas from '@/components/tratativa/AcoesRapidas'
 import SidePanel from '@/components/tratativa/SidePanel'
+import PersonaGuard from '@/components/PersonaGuard'
 
 const SECTION_LABELS = ['Identificação', 'Partes', 'Documentos', 'Análise', 'Envio']
 
@@ -64,6 +65,7 @@ export default function TratativaFormPage({ params }: PageProps) {
   }
 
   return (
+    <PersonaGuard permitidas={['operador']}>
     <div className="max-w-7xl mx-auto px-6 py-8">
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-6">
@@ -138,5 +140,6 @@ export default function TratativaFormPage({ params }: PageProps) {
         </div>
       </div>
     </div>
+    </PersonaGuard>
   )
 }

@@ -1,4 +1,5 @@
 import type { Processo, Chamado } from './mock-data'
+import type { Persona } from './personas'
 
 export type PendenciaTipo = 'sla' | 'resposta' | 'parado' | 'devolvido' | 'servicenow'
 
@@ -12,7 +13,7 @@ export interface PendenciaItem {
   href: string
 }
 
-const USUARIO_ATIVO = 'Ana Costa'
+const USUARIO_OPERADOR = 'Ana Costa'
 
 function horasRestantes(dataAbertura: string, slaHoras: number): number {
   const expira = new Date(dataAbertura).getTime() + slaHoras * 3_600_000
@@ -36,9 +37,11 @@ function formatRelativo(data: string): string {
   return `há ${months} ${months === 1 ? 'mês' : 'meses'}`
 }
 
-export function derivePendencias(cases: Processo[], chamados: Chamado[]): PendenciaItem[] {
+export function derivePendencias(cases: Processo[], chamados: Chamado[], persona: Persona = 'operador'): PendenciaItem[] {
   // TODO: filtrar por usuário ativo real
-  const meusCasos = cases.filter(p => p.analistaResponsavel === USUARIO_ATIVO)
+  const meusCasos = persona === 'gestor'
+    ? cases
+    : cases.filter(p => p.analistaResponsavel === USUARIO_OPERADOR)
   const meusCasosIds = new Set(meusCasos.map(p => p.id))
   const meusChamados = chamados.filter(c => meusCasosIds.has(c.processoId))
 
@@ -60,7 +63,7 @@ export function derivePendencias(cases: Processo[], chamados: Chamado[]): Penden
         descricao: `Processo ${proc?.numero ?? c.processoId} — ${c.documentoSolicitado}`,
         timestamp: formatRelativo(c.dataAbertura),
         processoId: c.processoId,
-        href: `/tratativas/${c.processoId}`,
+        href: persona === 'gestor' ? `/chamados/${c.id}` : `/tratativas/${c.processoId}`,
       })
       if (items.filter(i => i.tipo === 'sla').length >= 2) break
     }
@@ -86,17 +89,17 @@ export function derivePendencias(cases: Processo[], chamados: Chamado[]): Penden
     }
   }
 
-  // Devolvido pelo gestor
+  // Devolvido pelo gestor / pendente de ação
   for (const p of meusCasos) {
     if (p.pendenteGestor) {
       items.push({
         id: `dev-${p.id}`,
         tipo: 'devolvido',
-        titulo: 'Gestor devolveu com comentário',
+        titulo: persona === 'gestor' ? 'Caso pendente de ação do gestor' : 'Gestor devolveu com comentário',
         descricao: `Processo ${p.numero} — Revisão necessária`,
         timestamp: formatRelativo(p.dataDistribuicao),
         processoId: p.id,
-        href: `/tratativas/${p.id}`,
+        href: persona === 'gestor' ? `/gestao` : `/tratativas/${p.id}`,
       })
       break
     }
@@ -128,10 +131,10 @@ export function derivePendencias(cases: Processo[], chamados: Chamado[]): Penden
         id: `parado-${p.id}`,
         tipo: 'parado',
         titulo: `Caso parado há ${diasLabel} dias`,
-        descricao: `Processo ${p.numero} — Aguardando sua análise`,
+        descricao: `Processo ${p.numero} — ${persona === 'gestor' ? `Analista: ${p.analistaResponsavel}` : 'Aguardando sua análise'}`,
         timestamp: formatRelativo(p.dataDistribuicao),
         processoId: p.id,
-        href: `/tratativas/${p.id}`,
+        href: persona === 'gestor' ? `/gestao` : `/tratativas/${p.id}`,
       })
       paradoCount++
       if (paradoCount >= 2) break

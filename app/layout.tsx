@@ -5,7 +5,9 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { CasesProvider } from '@/context/CasesContext'
 import { ChamadosProvider } from '@/context/ChamadosContext'
+import { PersonaProvider } from '@/context/PersonaContext'
 import Header from '@/components/Header'
+import FaixaContexto from '@/components/header/FaixaContexto'
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: '--font-jakarta-sans',
@@ -24,10 +26,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-brand-offwhite">
         <CasesProvider>
           <ChamadosProvider>
-            <Header />
-            <main className="pt-16 min-h-screen">
-              {children}
-            </main>
+            <PersonaProvider>
+              <Header />
+              <FaixaContexto />
+              <main className="pt-24 min-h-screen">
+                {children}
+              </main>
+            </PersonaProvider>
           </ChamadosProvider>
         </CasesProvider>
       </body>
