@@ -1,9 +1,13 @@
 'use client'
 
+// TODO: mapear tarefas para processos jurídicos via GCPJ em integração real
+
 import { use, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useCases } from '@/context/CasesContext'
-import { Analise } from '@/lib/mock-data'
+import { useTarefas } from '@/context/TarefasContext'
+import { Analise, Processo, ProcessoStatus, TipoSubsidio } from '@/lib/mock-data'
+import { Tarefa } from '@/lib/tarefas-mock'
 import ProgressBar from '@/components/tratativa/ProgressBar'
 import Section1Identificacao from '@/components/tratativa/Section1Identificacao'
 import Section2Partes from '@/components/tratativa/Section2Partes'
@@ -13,8 +17,75 @@ import Section5Resumo from '@/components/tratativa/Section5Resumo'
 import AcoesRapidas from '@/components/tratativa/AcoesRapidas'
 import SidePanel from '@/components/tratativa/SidePanel'
 import PersonaGuard from '@/components/PersonaGuard'
+import ResumoTarefaCard from '@/components/estoque/ResumoTarefaCard'
 
 const SECTION_LABELS = ['Identificação', 'Partes', 'Documentos', 'Análise', 'Envio']
+
+const VARAS = ['1ª Vara Cível', '2ª Vara Cível', '3ª Vara Cível', '4ª Vara Cível', '5ª Vara Cível Central']
+const COMARCAS = ['São Paulo', 'Santo André', 'Guarulhos', 'Campinas', 'Santos', 'Osasco', 'Ribeirão Preto']
+const NOMES = [
+  'Carlos Eduardo Santos', 'Maria Aparecida Lima', 'José Roberto Oliveira',
+  'Ana Paula Ferreira', 'Roberto Carlos Mendes', 'Fernanda Costa Silva',
+  'Paulo Henrique Souza', 'Juliana Ribeiro Alves',
+]
+const ADVOGADOS_AUTOR = [
+  'Dr. Rogério Alves', 'Dra. Patrícia Moura', 'Dr. Cláudio Martins',
+  'Dra. Carla Fonseca', 'Dr. Henrique Bastos',
+]
+
+function numHash(str: string): number {
+  let h = 0
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0
+  }
+  return h
+}
+
+function pick<T>(arr: T[], hash: number): T {
+  return arr[hash % arr.length]
+}
+
+function gerarProcessoSintetico(tarefa: Tarefa): Processo {
+  const h = numHash(tarefa.numeroGCPJ)
+  const gcpj = tarefa.numeroGCPJ
+  const ultimosCinco = gcpj.slice(-5)
+  const numero = `00${ultimosCinco}-${String(h % 99).padStart(2, '0')}.2024.8.26.0100`
+
+  const tipoSubsidioMap: Record<string, TipoSubsidio> = {
+    'Consignado Bradesco': 'Revisional',
+    'Cesta de Serviços': 'Cobrança Indevida',
+    'Contas': 'Dano Moral',
+  }
+  const tipoAcaoMap: Record<string, string> = {
+    'Consignado Bradesco': 'Ação Revisional de Contrato de Crédito Consignado',
+    'Cesta de Serviços': 'Ação de Repetição de Indébito por Cobrança Indevida',
+    'Contas': 'Ação de Indenização por Dano Moral',
+  }
+
+  const valorBase = 5000 + (h % 45000)
+
+  return {
+    id: tarefa.numero,
+    numero,
+    produto: tarefa.produto,
+    vara: pick(VARAS, h),
+    comarca: pick(COMARCAS, h + 1),
+    tribunal: 'TJSP',
+    tipoSubsidio: tipoSubsidioMap[tarefa.produto] ?? 'Dano Moral',
+    tipoAcao: tipoAcaoMap[tarefa.produto] ?? 'Ação Cível',
+    faseProcessual: 'Conhecimento',
+    valorCausa: valorBase,
+    dataEntrada: tarefa.criacaoEm.substring(0, 10),
+    dataDistribuicao: tarefa.criacaoEm.substring(0, 10),
+    status: tarefa.status === 'Em Andamento' ? 'Em tratativa' : 'Distribuído' as ProcessoStatus,
+    analistaResponsavel: tarefa.analista,
+    nomeAutor: pick(NOMES, h + 2),
+    cpfAutor: `***.${String((h % 999)).padStart(3, '0')}.***-**`,
+    advogadoAutor: pick(ADVOGADOS_AUTOR, h + 3),
+    oabAdvogadoAutor: `OAB/SP ${String(100000 + (h % 200000))}`,
+    advogadoReu: 'Dra. Beatriz Cardoso',
+  }
+}
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -22,9 +93,13 @@ interface PageProps {
 
 export default function TratativaFormPage({ params }: PageProps) {
   const { id } = use(params)
-  const { getCase, dispatch } = useCases()
+  const { dispatch } = useCases()
+  const { getTarefa, getTarefasPorGCPJ } = useTarefas()
   const router = useRouter()
-  const processo = getCase(id)
+
+  const tarefa = getTarefa(id)
+  const processo = useMemo(() => tarefa ? gerarProcessoSintetico(tarefa) : null, [tarefa])
+  const outrasDoGCPJ = tarefa ? getTarefasPorGCPJ(tarefa.numeroGCPJ).filter((t) => t.numero !== id) : []
 
   const [advogadoReu, setAdvogadoReu] = useState(processo?.advogadoReu ?? '')
   const [analise, setAnalise] = useState<Analise>(processo?.analise ?? {})
@@ -44,12 +119,12 @@ export default function TratativaFormPage({ params }: PageProps) {
     return count
   }, [advogadoReu, docsComplete, analise])
 
-  if (!processo) {
+  if (!tarefa || !processo) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] gap-3">
-        <p className="text-brand-slate font-light">Processo não encontrado.</p>
-        <a href="/tratativas" className="text-sm font-semibold text-brand-mid hover:underline">
-          Voltar às tratativas
+        <p className="text-brand-slate font-light">Tarefa não encontrada.</p>
+        <a href="/estoque" className="text-sm font-semibold text-brand-mid hover:underline">
+          Voltar ao estoque
         </a>
       </div>
     )
@@ -60,8 +135,8 @@ export default function TratativaFormPage({ params }: PageProps) {
   }
 
   function handleEnviado(protocolo: string) {
-    dispatch({ type: 'ATUALIZAR_ANALISE', id, analise })
-    dispatch({ type: 'ENVIAR_SERVICENOW', id, protocolo })
+    dispatch({ type: 'ATUALIZAR_ANALISE', id: processo!.id, analise })
+    dispatch({ type: 'ENVIAR_SERVICENOW', id: processo!.id, protocolo })
   }
 
   return (
@@ -70,16 +145,16 @@ export default function TratativaFormPage({ params }: PageProps) {
       {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-6">
         <button
-          onClick={() => router.push('/tratativas')}
+          onClick={() => router.push('/estoque')}
           className="flex items-center gap-1.5 text-sm text-brand-slate hover:text-brand-dark transition-colors font-light"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Tratativas
+          Estoque
         </button>
         <span className="text-brand-slate/40">/</span>
-        <span className="text-sm font-semibold text-brand-dark truncate">{processo.numero}</span>
+        <span className="text-sm font-semibold text-brand-dark truncate">{tarefa.numero}</span>
       </div>
 
       {/* Header */}
@@ -98,7 +173,9 @@ export default function TratativaFormPage({ params }: PageProps) {
 
         {/* Coluna principal */}
         <div className="lg:col-span-2">
-          <AcoesRapidas processoNumero={processo.numero} />
+          <ResumoTarefaCard tarefa={tarefa} outrasCount={outrasDoGCPJ.length} />
+
+          <AcoesRapidas processoNumero={tarefa.numero} />
 
           <ProgressBar
             totalSections={5}
@@ -117,7 +194,7 @@ export default function TratativaFormPage({ params }: PageProps) {
           <Section3Documentos
             onComplete={() => setDocsComplete(true)}
             isComplete={docsComplete}
-            processoId={id}
+            processoId={tarefa.numero}
           />
 
           <Section4Analise analise={analise} onChange={handleAnaliseChange} />
