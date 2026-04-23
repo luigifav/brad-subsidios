@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { CasesProvider } from '@/context/CasesContext'
+import { ChamadosProvider } from '@/context/ChamadosContext'
 import Header from '@/components/Header'
 
 const jakartaSans = Plus_Jakarta_Sans({
@@ -22,10 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={jakartaSans.variable}>
       <body className="min-h-screen bg-brand-offwhite">
         <CasesProvider>
-          <Header />
-          <main className="pt-16 min-h-screen">
-            {children}
-          </main>
+          <ChamadosProvider>
+            <Header />
+            <main className="pt-16 min-h-screen">
+              {children}
+            </main>
+          </ChamadosProvider>
         </CasesProvider>
       </body>
     </html>

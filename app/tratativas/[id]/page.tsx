@@ -104,6 +104,7 @@ export default function TratativaFormPage({ params }: PageProps) {
       <Section3Documentos
         onComplete={() => setDocsComplete(true)}
         isComplete={docsComplete}
+        processoId={id}
       />
 
       <Section4Analise analise={analise} onChange={handleAnaliseChange} />
