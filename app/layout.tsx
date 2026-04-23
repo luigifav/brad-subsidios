@@ -5,6 +5,7 @@ import { Plus_Jakarta_Sans } from 'next/font/google'
 import './globals.css'
 import { CasesProvider } from '@/context/CasesContext'
 import { ChamadosProvider } from '@/context/ChamadosContext'
+import { TarefasProvider } from '@/context/TarefasContext'
 import { PersonaProvider } from '@/context/PersonaContext'
 import Header from '@/components/Header'
 import FaixaContexto from '@/components/header/FaixaContexto'
@@ -26,6 +27,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-brand-offwhite">
         <CasesProvider>
           <ChamadosProvider>
+            <TarefasProvider>
             <PersonaProvider>
               <Header />
               <FaixaContexto />
@@ -33,6 +35,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 {children}
               </main>
             </PersonaProvider>
+            </TarefasProvider>
           </ChamadosProvider>
         </CasesProvider>
       </body>
