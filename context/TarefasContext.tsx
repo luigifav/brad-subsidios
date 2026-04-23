@@ -49,7 +49,7 @@ function reducer(state: Tarefa[], action: Action): Tarefa[] {
 
 // TODO: remover reatribuição mockada quando integração real for feita
 function initTarefas(tarefas: Tarefa[]): Tarefa[] {
-  const indices = [0, 5, 12, 20]
+  const indices = [10, 45, 90, 130]
   return tarefas.map((t, i) => {
     if (indices.includes(i)) {
       return { ...t, analista: 'Ana Costa', status: 'Em Andamento' as TarefaStatus }
