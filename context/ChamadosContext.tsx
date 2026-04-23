@@ -201,6 +201,17 @@ function createMockChamados(): Chamado[] {
       status: 'sla_estourado',
       abertoPor: 'automacao',
     },
+    {
+      id: 'chm-011',
+      numero: 'CHM-2026-00852',
+      processoId: 'proc-012',
+      documentoSolicitado: 'LAUDO',
+      area: 'Compliance',
+      slaHoras: 2,
+      dataAbertura: h(1.5),
+      status: 'aberto',
+      abertoPor: 'manual',
+    },
   ]
 }
 
