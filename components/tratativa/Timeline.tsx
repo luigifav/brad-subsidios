@@ -37,11 +37,12 @@ interface Props {
   processo: Processo
   analise: Analise
   docsComplete: boolean
-  isOpen: boolean
-  onClose: () => void
+  isOpen?: boolean
+  onClose?: () => void
+  panelMode?: boolean
 }
 
-export default function Timeline({ processo, analise, docsComplete, isOpen, onClose }: Props) {
+export default function Timeline({ processo, analise, docsComplete, isOpen, onClose, panelMode }: Props) {
   const events = useMemo<TimelineEvent[]>(() => {
     const list: TimelineEvent[] = []
 
@@ -123,12 +124,36 @@ export default function Timeline({ processo, analise, docsComplete, isOpen, onCl
     return list
   }, [processo, analise, docsComplete])
 
+  if (panelMode) {
+    return (
+      <div className="max-h-[500px] overflow-y-auto">
+        <div className="relative">
+          <div className="absolute left-[5px] top-0 bottom-0 w-px border-l-2 border-gray-100" />
+          <ul className="space-y-5">
+            {events.map((event, i) => (
+              <li key={i} className="relative flex gap-3 pl-5">
+                <span
+                  className={`absolute left-0 top-1 w-3 h-3 rounded-full flex-shrink-0 ${EVENT_COLORS[event.type]}`}
+                />
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold text-brand-dark leading-snug">{event.title}</p>
+                  <p className="text-xs text-brand-slate font-light mt-0.5 leading-snug">{event.description}</p>
+                  <p className="text-xs text-brand-slate font-light italic mt-1">{event.timestamp}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <>
       {/* Aba lateral visível quando fechado */}
       {!isOpen && (
         <button
-          onClick={() => onClose()}
+          onClick={() => onClose?.()}
           aria-label="Abrir timeline"
           className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center justify-center gap-2 w-10 h-28 bg-white border border-gray-200 border-r-0 rounded-l-md shadow-sm hover:bg-brand-offwhite transition-colors cursor-pointer"
           style={{ writingMode: 'vertical-rl' }}
@@ -163,7 +188,7 @@ export default function Timeline({ processo, analise, docsComplete, isOpen, onCl
               <p className="text-xs text-brand-slate font-light mt-0.5">{processo.numero}</p>
             </div>
             <button
-              onClick={onClose}
+              onClick={() => onClose?.()}
               aria-label="Fechar timeline"
               className="text-brand-slate hover:text-brand-dark transition-colors mt-0.5"
             >
