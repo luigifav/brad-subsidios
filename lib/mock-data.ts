@@ -24,6 +24,13 @@ export type Estrategia =
 
 export type DocumentoStatus = 'idle' | 'loading' | 'found' | 'unavailable'
 
+export type StatusServiceNow =
+  | 'aguardando'
+  | 'em_geracao'
+  | 'laudo_gerado'
+  | 'entregue'
+  | 'pendencia'
+
 export interface Analise {
   tipoRisco?: TipoRisco
   probabilidade?: Probabilidade
@@ -56,6 +63,10 @@ export interface Processo {
   advogadoReu: string
   analise?: Analise
   protocoloServiceNow?: string
+  statusServiceNow?: StatusServiceNow
+  tempoDesdeEnvio?: string
+  timestampEnvio?: string
+  pendenciaDescricao?: string
 }
 
 export interface DocumentoBanco {
@@ -391,6 +402,9 @@ export const MOCK_PROCESSOS: Processo[] = [
     oabAdvogadoAutor: 'OAB/SP 312.088',
     advogadoReu: 'Dra. Juliana Freitas',
     protocoloServiceNow: 'SN-2024-00731',
+    statusServiceNow: 'entregue',
+    tempoDesdeEnvio: '2d 4h',
+    timestampEnvio: '2024-01-07T10:00:00.000Z',
   },
 ]
 

@@ -97,15 +97,28 @@ export default function Section5Resumo({ processo, analise, docsComplete, onEnvi
           <span className="text-xs font-semibold text-brand-slate uppercase tracking-wide">Protocolo ServiceNow</span>
           <p className="text-lg font-semibold text-brand-mid font-mono mt-1">{protocolo}</p>
         </div>
-        <a
-          href="/tratativas"
-          className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-brand-dark rounded-lg hover:bg-brand-hover transition-colors"
-        >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
-          Voltar às Tratativas
-        </a>
+        {/* TODO: integrar com webhook do ServiceNow para atualização automática de status */}
+        <div className="flex gap-3">
+          <a
+            href="/tratativas"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-brand-dark rounded-lg hover:bg-brand-hover transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Voltar às Tratativas
+          </a>
+          <a
+            href={`/acompanhamento/${processo.id}`}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-brand-mid border border-brand-mid rounded-lg hover:bg-brand-mid/5 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            Acompanhar no pós-envio
+          </a>
+        </div>
       </div>
     )
   }
