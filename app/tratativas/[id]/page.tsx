@@ -10,6 +10,7 @@ import Section2Partes from '@/components/tratativa/Section2Partes'
 import Section3Documentos from '@/components/tratativa/Section3Documentos'
 import Section4Analise from '@/components/tratativa/Section4Analise'
 import Section5Resumo from '@/components/tratativa/Section5Resumo'
+import Timeline from '@/components/tratativa/Timeline'
 
 const SECTION_LABELS = ['Identificação', 'Partes', 'Documentos', 'Análise', 'Envio']
 
@@ -26,6 +27,7 @@ export default function TratativaFormPage({ params }: PageProps) {
   const [advogadoReu, setAdvogadoReu] = useState(processo?.advogadoReu ?? '')
   const [analise, setAnalise] = useState<Analise>(processo?.analise ?? {})
   const [docsComplete, setDocsComplete] = useState(false)
+  const [timelineOpen, setTimelineOpen] = useState(false)
 
   const completedSections = useMemo(() => {
     let count = 1 // seção 1 sempre completa (pré-preenchida)
@@ -62,6 +64,7 @@ export default function TratativaFormPage({ params }: PageProps) {
   }
 
   return (
+    <>
     <div className="max-w-screen-md mx-auto px-6 py-8">
       <div className="flex items-center gap-3 mb-6">
         <button
@@ -112,5 +115,14 @@ export default function TratativaFormPage({ params }: PageProps) {
         onEnviado={handleEnviado}
       />
     </div>
+
+    <Timeline
+      processo={processo}
+      analise={analise}
+      docsComplete={docsComplete}
+      isOpen={timelineOpen}
+      onClose={() => setTimelineOpen(!timelineOpen)}
+    />
+    </>
   )
 }
