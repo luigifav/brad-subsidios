@@ -153,7 +153,7 @@ export default function Timeline({ processo, analise, docsComplete, isOpen, onCl
       {/* Aba lateral visível quando fechado */}
       {!isOpen && (
         <button
-          onClick={() => onClose()}
+          onClick={() => onClose?.()}
           aria-label="Abrir timeline"
           className="fixed right-0 top-1/2 -translate-y-1/2 z-40 flex flex-col items-center justify-center gap-2 w-10 h-28 bg-white border border-gray-200 border-r-0 rounded-l-md shadow-sm hover:bg-brand-offwhite transition-colors cursor-pointer"
           style={{ writingMode: 'vertical-rl' }}
@@ -188,7 +188,7 @@ export default function Timeline({ processo, analise, docsComplete, isOpen, onCl
               <p className="text-xs text-brand-slate font-light mt-0.5">{processo.numero}</p>
             </div>
             <button
-              onClick={onClose}
+              onClick={() => onClose?.()}
               aria-label="Fechar timeline"
               className="text-brand-slate hover:text-brand-dark transition-colors mt-0.5"
             >
