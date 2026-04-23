@@ -10,7 +10,8 @@ import Section2Partes from '@/components/tratativa/Section2Partes'
 import Section3Documentos from '@/components/tratativa/Section3Documentos'
 import Section4Analise from '@/components/tratativa/Section4Analise'
 import Section5Resumo from '@/components/tratativa/Section5Resumo'
-import Timeline from '@/components/tratativa/Timeline'
+import AcoesRapidas from '@/components/tratativa/AcoesRapidas'
+import SidePanel from '@/components/tratativa/SidePanel'
 
 const SECTION_LABELS = ['Identificação', 'Partes', 'Documentos', 'Análise', 'Envio']
 
@@ -27,10 +28,9 @@ export default function TratativaFormPage({ params }: PageProps) {
   const [advogadoReu, setAdvogadoReu] = useState(processo?.advogadoReu ?? '')
   const [analise, setAnalise] = useState<Analise>(processo?.analise ?? {})
   const [docsComplete, setDocsComplete] = useState(false)
-  const [timelineOpen, setTimelineOpen] = useState(false)
 
   const completedSections = useMemo(() => {
-    let count = 1 // seção 1 sempre completa (pré-preenchida)
+    let count = 1
     if (advogadoReu.trim().length > 0) count++
     if (docsComplete) count++
     if (
@@ -64,8 +64,8 @@ export default function TratativaFormPage({ params }: PageProps) {
   }
 
   return (
-    <>
-    <div className="max-w-screen-md mx-auto px-6 py-8">
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Breadcrumb */}
       <div className="flex items-center gap-3 mb-6">
         <button
           onClick={() => router.push('/tratativas')}
@@ -80,50 +80,63 @@ export default function TratativaFormPage({ params }: PageProps) {
         <span className="text-sm font-semibold text-brand-dark truncate">{processo.numero}</span>
       </div>
 
+      {/* Header */}
       <div className="mb-6">
         <h1 className="text-xl font-semibold text-brand-dark">Formulário de Tratativa</h1>
         <p className="text-sm text-brand-slate font-light mt-1">
           Instrução do processo para geração do laudo pelo ServiceNow
         </p>
+        <p className="text-xs text-brand-slate font-light italic mt-1">
+          Tudo sobre este caso neste lugar: formulário, chamados, acompanhamento e histórico.
+        </p>
       </div>
 
-      <ProgressBar
-        totalSections={5}
-        completedSections={completedSections}
-        labels={SECTION_LABELS}
-      />
+      {/* Grid de duas colunas: principal (2/3) e lateral (1/3) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-      <Section1Identificacao processo={processo} />
+        {/* Coluna principal */}
+        <div className="lg:col-span-2">
+          <AcoesRapidas processoNumero={processo.numero} />
 
-      <Section2Partes
-        processo={processo}
-        advogadoReu={advogadoReu}
-        onAdvogadoReuChange={setAdvogadoReu}
-      />
+          <ProgressBar
+            totalSections={5}
+            completedSections={completedSections}
+            labels={SECTION_LABELS}
+          />
 
-      <Section3Documentos
-        onComplete={() => setDocsComplete(true)}
-        isComplete={docsComplete}
-        processoId={id}
-      />
+          <Section1Identificacao processo={processo} />
 
-      <Section4Analise analise={analise} onChange={handleAnaliseChange} />
+          <Section2Partes
+            processo={processo}
+            advogadoReu={advogadoReu}
+            onAdvogadoReuChange={setAdvogadoReu}
+          />
 
-      <Section5Resumo
-        processo={processo}
-        analise={analise}
-        docsComplete={docsComplete}
-        onEnviado={handleEnviado}
-      />
+          <Section3Documentos
+            onComplete={() => setDocsComplete(true)}
+            isComplete={docsComplete}
+            processoId={id}
+          />
+
+          <Section4Analise analise={analise} onChange={handleAnaliseChange} />
+
+          <Section5Resumo
+            processo={processo}
+            analise={analise}
+            docsComplete={docsComplete}
+            onEnviado={handleEnviado}
+          />
+        </div>
+
+        {/* Coluna lateral */}
+        <div className="lg:col-span-1">
+          <SidePanel
+            processo={processo}
+            analise={analise}
+            docsComplete={docsComplete}
+          />
+        </div>
+      </div>
     </div>
-
-    <Timeline
-      processo={processo}
-      analise={analise}
-      docsComplete={docsComplete}
-      isOpen={timelineOpen}
-      onClose={() => setTimelineOpen(!timelineOpen)}
-    />
-    </>
   )
 }

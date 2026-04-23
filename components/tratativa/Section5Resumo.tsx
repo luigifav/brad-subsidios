@@ -98,7 +98,7 @@ export default function Section5Resumo({ processo, analise, docsComplete, onEnvi
           <p className="text-lg font-semibold text-brand-mid font-mono mt-1">{protocolo}</p>
         </div>
         {/* TODO: integrar com webhook do ServiceNow para atualização automática de status */}
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <a
             href="/tratativas"
             className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-brand-dark rounded-lg hover:bg-brand-hover transition-colors"
@@ -108,9 +108,18 @@ export default function Section5Resumo({ processo, analise, docsComplete, onEnvi
             </svg>
             Voltar às Tratativas
           </a>
+          <button
+            onClick={() => setSuccess(false)}
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-brand-mid border border-brand-mid rounded-lg hover:bg-brand-mid/5 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
+            Continuar acompanhando aqui
+          </button>
           <a
             href={`/acompanhamento/${processo.id}`}
-            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-brand-mid border border-brand-mid rounded-lg hover:bg-brand-mid/5 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-brand-slate border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
           >
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
