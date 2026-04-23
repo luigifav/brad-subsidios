@@ -3,7 +3,7 @@
 // TODO: implementar autenticação e perfis de acesso (gestor vs analista)
 
 import { createContext, useContext, useReducer } from 'react'
-import { Analise, MOCK_PROCESSOS, Processo, ProcessoStatus } from '@/lib/mock-data'
+import { Analise, MOCK_PROCESSOS, Processo, ProcessoStatus, StatusServiceNow } from '@/lib/mock-data'
 
 type Action =
   | { type: 'DISTRIBUIR'; ids: string[]; analista: string }
@@ -38,7 +38,13 @@ function reducer(state: Processo[], action: Action): Processo[] {
     case 'ENVIAR_SERVICENOW':
       return state.map((p) =>
         p.id === action.id
-          ? { ...p, status: 'Enviado ao ServiceNow' as ProcessoStatus, protocoloServiceNow: action.protocolo }
+          ? {
+              ...p,
+              status: 'Enviado ao ServiceNow' as ProcessoStatus,
+              protocoloServiceNow: action.protocolo,
+              statusServiceNow: 'em_geracao' as StatusServiceNow,
+              timestampEnvio: new Date().toISOString(),
+            }
           : p
       )
     default:
