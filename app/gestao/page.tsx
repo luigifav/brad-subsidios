@@ -9,6 +9,7 @@ import { useChamados } from '@/context/ChamadosContext'
 import { Chamado } from '@/lib/mock-data'
 import StatusChamadoBadge from '@/components/chamados/StatusChamadoBadge'
 import Modal from '@/components/ui/Modal'
+import PersonaGuard from '@/components/PersonaGuard'
 import {
   ANALISTAS_PRODUTIVIDADE,
   ETAPAS_SLA,
@@ -119,6 +120,7 @@ export default function GestaoPage() {
   )
 
   return (
+    <PersonaGuard permitidas={['gestor']}>
     <div className="max-w-screen-xl mx-auto px-6 py-8">
       {/* Toast */}
       {toastMsg && (
@@ -130,7 +132,7 @@ export default function GestaoPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-semibold text-brand-dark">Gestão da Esteira</h1>
         <p className="text-sm text-brand-slate font-light mt-1">
-          Visão consolidada de produtividade e SLA
+          Orquestração da esteira pela gestão
         </p>
       </div>
 
@@ -517,5 +519,6 @@ export default function GestaoPage() {
         )}
       </Modal>
     </div>
+    </PersonaGuard>
   )
 }

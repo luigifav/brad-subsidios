@@ -7,6 +7,7 @@ import { useCases } from '@/context/CasesContext'
 import SLABadge from '@/components/chamados/SLABadge'
 import StatusChamadoBadge from '@/components/chamados/StatusChamadoBadge'
 import Modal from '@/components/ui/Modal'
+import PersonaGuard from '@/components/PersonaGuard'
 
 interface PageProps {
   params: Promise<{ id: string }>
@@ -106,6 +107,7 @@ export default function ChamadoDetailPage({ params }: PageProps) {
   ]
 
   return (
+    <PersonaGuard permitidas={['gestor']}>
     <div className="max-w-screen-xl mx-auto px-6 py-8">
       <div className="flex items-center gap-2 mb-6 text-sm">
         <Link href="/chamados" className="text-brand-mid hover:text-brand-dark transition-colors font-semibold">
@@ -340,5 +342,6 @@ export default function ChamadoDetailPage({ params }: PageProps) {
         </div>
       </Modal>
     </div>
+    </PersonaGuard>
   )
 }

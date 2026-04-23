@@ -5,17 +5,10 @@ import { usePathname } from 'next/navigation'
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { useCases } from '@/context/CasesContext'
 import { useChamados } from '@/context/ChamadosContext'
+import { useAtivaPersona } from '@/context/PersonaContext'
 import { derivePendencias } from '@/lib/pendencias'
 import PendenciasDropdown from './header/PendenciasDropdown'
-
-const navItems = [
-  { href: '/estoque', label: 'Estoque' },
-  { href: '/tratativas', label: 'Tratativas' },
-  { href: '/chamados', label: 'Chamados' },
-  { href: '/acompanhamento', label: 'Acompanhamento' },
-  { href: '/gestao', label: 'Gestão' },
-  { href: '/painel', label: 'Painel' },
-]
+import PersonaToggle from './header/PersonaToggle'
 
 function BellIcon({ className }: { className?: string }) {
   return (
@@ -29,12 +22,13 @@ export default function Header() {
   const pathname = usePathname()
   const { cases } = useCases()
   const { chamados } = useChamados()
+  const { persona, config } = useAtivaPersona()
 
   const [isOpen, setIsOpen] = useState(false)
   const [tooltipSeen, setTooltipSeen] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  const pendencias = useMemo(() => derivePendencias(cases, chamados), [cases, chamados])
+  const pendencias = useMemo(() => derivePendencias(cases, chamados, persona), [cases, chamados, persona])
   const hasUrgent = pendencias.some(p => p.tipo === 'sla' || p.tipo === 'servicenow')
 
   useEffect(() => {
@@ -57,7 +51,7 @@ export default function Header() {
       </div>
 
       <nav className="flex items-center gap-1 flex-1">
-        {navItems.map((item) => {
+        {config.navegacao.map((item) => {
           const isActive = pathname.startsWith(item.href)
           return (
             <Link
@@ -76,6 +70,8 @@ export default function Header() {
       </nav>
 
       <div className="flex items-center gap-4 shrink-0">
+        <PersonaToggle />
+
         <div ref={containerRef} className="relative">
           <button
             onClick={() => setIsOpen(prev => !prev)}
@@ -107,10 +103,12 @@ export default function Header() {
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-full bg-brand-mid flex items-center justify-center text-white text-xs font-semibold">
-            AC
+          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold ${
+            persona === 'gestor' ? 'bg-brand-hover' : 'bg-brand-mid'
+          }`}>
+            {config.iniciais}
           </div>
-          <span className="text-white/80 text-sm font-light">Ana Costa — Analista</span>
+          <span className="text-white/80 text-sm font-light">{config.nome} — {config.cargo}</span>
         </div>
       </div>
     </header>
